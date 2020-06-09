@@ -1,0 +1,4 @@
+__pycache__/
+.vscode/
+src/test.py
+video

@@ -7,21 +7,13 @@ class SQLighter:
         self.connection = sqlite3.connect(database)
         self.cursor = self.connection.cursor()
 
-    def select_all(self):
-        """ Получаем все строки """
+    def select_cities(self):
         with self.connection:
-            return self.cursor.execute('SELECT * FROM users').fetchall()
+            return self.cursor.execute('SELECT * FROM cities').fetchall()
 
-    def select_single(self, rownum):
-        """ Получаем одну строку с номером rownum """
+    def add_user(self, user):
         with self.connection:
-            return self.cursor.execute('SELECT * FROM users WHERE id = ?', (rownum,)).fetchall()[0]
-
-    def count_rows(self):
-        """ Считаем количество строк """
-        with self.connection:
-            result = self.cursor.execute('SELECT * FROM users').fetchall()
-            return len(result)
+            return self.cursor.execute('INSERT INTO users (name, city_id, phone_number, language, decision) VALUES (?,?,?,?,?)', user)
 
     def close(self):
         """ Закрываем текущее соединение с БД """

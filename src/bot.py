@@ -10,17 +10,19 @@ from phonenumbers.phonenumberutil import number_type
 bot = telebot.TeleBot(config.token)
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
-db = Postgretor(config.database_name)
 user_dict = {}
+conn = Postgretor(config.database_name)
 
 
 class User:
     def __init__(self, language):
         self.language = language
+        self.username = None
+        self.telegram_id = None
         self.name = None
         self.city = None
         self.phone_number = None
-        self.decision = None
+        self.decision = False
 
 
 class Error(Exception):
@@ -61,7 +63,8 @@ def gen_inline_markup(dict, row_width):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    msg = bot.send_message(message.chat.id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
+    chat_id = message.chat.id
+    msg = bot.send_message(chat_id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
                            reply_markup=gen_inline_markup(languages, 2))
 
 
@@ -73,36 +76,46 @@ def callback_query(call):
             user = User('ru')
             user_dict[chat_id] = user
             bot.answer_callback_query(call.id, "Выбран русский язык")
-            send_video(call.message)
         elif call.data == "cb_kz":
             user = User('kz')
             user_dict[chat_id] = user
             bot.answer_callback_query(call.id, "Қазақша тілі таңдалды")
-            send_video(call.message)
-        bot.send_video(chat_id, config.video_id, None)
-        choices = {'cb_no': config.localization[user_dict[chat_id].language]
-                   ['no'], 'cb_yes': config.localization[user_dict[chat_id].language]
-                   ['yes']}
+        user = user_dict[chat_id]
+        user.username = call.message.chat.username
+        user.telegram_id = str(call.message.chat.id)
+        bot.send_message(chat_id, 'VIDEO WILL BE THIS')
+        choices = {'cb_no': config.localization[user_dict[chat_id].language]['no'],
+                   'cb_yes': config.localization[user_dict[chat_id].language]['yes']}
         bot.send_message(chat_id, config.localization[user_dict[chat_id].language]
                          ['offer'], reply_markup=gen_inline_markup(choices, 2))
     elif call.data == "cb_no":
         user = user_dict[chat_id]
-        user.decision = False
         try:
-            bot.answer_callback_query(
-                call.id, config.localization[user.language]['no'])
             bot.edit_message_text(
                 config.localization[user.language]['deny'], chat_id, call.message.message_id)
+            bot.answer_callback_query(
+                call.id, config.localization[user.language]['no'])
+            if not conn.exist_user(str(chat_id)):
+                tpl = (user.name, user.city, user.phone_number,
+                       user.language, user.telegram_id, user.username, user.decision)
+                res = conn.add_user(tpl)
         except Exception as e:
             pass
     elif call.data == "cb_yes":
-        user = user_dict[chat_id]
-        user.decision = True
-        bot.answer_callback_query(
-            call.id, config.localization[user.language]['yes'])
-        msg = bot.send_message(
-            chat_id, config.localization[user.language]['name'])
-        bot.register_next_step_handler(msg, process_name_step)
+        try:
+            user = user_dict[chat_id]
+            user.decision = True
+            bot.answer_callback_query(
+                call.id, config.localization[user.language]['yes'])
+            if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[-1]:
+                res = conn.select_user(user.telegram_id)
+                bot.send_message(chat_id, 'Пользователь уже зарегестрирован')
+            else:
+                msg = bot.send_message(
+                    chat_id, config.localization[user.language]['name'])
+                bot.register_next_step_handler(msg, process_name_step)
+        except Exception as e:
+            bot.reply_to(message, 'oooops')
     elif call.data[0] == 'c':
         city = int(call.data[1])
         user = user_dict[chat_id]
@@ -113,16 +126,11 @@ def callback_query(call):
         bot.register_next_step_handler(msg, process_phone_step)
 
 
-def send_video(message):
-    chat_id = message.chat.id
-
-
 def process_name_step(message):
     chat_id = message.chat.id
     name = message.text
     user = user_dict[chat_id]
     user.name = name
-    conn = Postgretor(config.database_name)
     res = conn.select_cities()
     cities = []
     lang = 2 if user.language == "kz" else 3
@@ -147,17 +155,19 @@ def process_phone_step(message):
             if not (carrier._is_mobile(number_type(phonenumbers.parse(number)))):
                 raise Exception
             user.phone_number = number
-        conn = Postgretor(config.database_name)
-        if conn.exist_user(user.phone_number):
+        if conn.exist_phone(user.phone_number):
             raise PhoneExists
         options = [config.localization[user.language]['no'],
                    config.localization[user.language]['yes']]
+        bot.send_message(chat_id, f'Имя: {user.name}\n'
+                                  f'Номер: {user.phone_number}\n'
+                                  f'Город: {user.city}')
         msg = bot.send_message(
-            chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 2, True, False))
+            chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 1, True, False))
         bot.register_next_step_handler(msg, process_confirmation_step)
     except PhoneExists:
         msg = bot.send_message(
-            message.chat.id, config.localization[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, True, False))
+            message.chat.id, config.localization[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, False, False))
         bot.register_next_step_handler(msg, process_phone_step)
     except Exception:
         buttons = (config.localization[user.language]['send_contact'],)
@@ -172,9 +182,12 @@ def process_confirmation_step(message):
         confirm = message.text
         user = user_dict[chat_id]
         if confirm in ('Да', 'Йә'):
-            conn = Postgretor(config.database_name)
-            tpl = (user.name, user.city, user.phone_number,
-                   user.language, user.decision)
+            if conn.exist_user(user.telegram_id) and not conn.select_user(user.telegram_id)[-1]:
+                tpl = [user.name, user.city, user.phone_number,
+                       user.language, user.decision, user.telegram_id]
+                conn.update_user(tpl)
+            tpl = (user.name, user.city, user.phone_number, user.language,
+                   user.telegram_id, user.username, user.decision)
             res = conn.add_user(tpl)
             decision = config.localization[user.language]['invite']
             bot.send_message(chat_id, decision, parse_mode="MarkdownV2")

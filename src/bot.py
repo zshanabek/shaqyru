@@ -1,4 +1,4 @@
-from sqligther import SQLighter
+from postgretor import Postgretor
 import config
 import telebot
 from telebot import types
@@ -10,7 +10,7 @@ from phonenumbers.phonenumberutil import number_type
 bot = telebot.TeleBot(config.token)
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
-db = SQLighter(config.database_name)
+db = Postgretor(config.database_name)
 user_dict = {}
 
 
@@ -122,7 +122,7 @@ def process_name_step(message):
     name = message.text
     user = user_dict[chat_id]
     user.name = name
-    conn = SQLighter(config.database_name)
+    conn = Postgretor(config.database_name)
     res = conn.select_cities()
     cities = []
     lang = 2 if user.language == "kz" else 3
@@ -147,7 +147,7 @@ def process_phone_step(message):
             if not (carrier._is_mobile(number_type(phonenumbers.parse(number)))):
                 raise Exception
             user.phone_number = number
-        conn = SQLighter(config.database_name)
+        conn = Postgretor(config.database_name)
         if conn.exist_user(user.phone_number):
             raise PhoneExists
         options = [config.localization[user.language]['no'],
@@ -172,7 +172,7 @@ def process_confirmation_step(message):
         confirm = message.text
         user = user_dict[chat_id]
         if confirm in ('Да', 'Йә'):
-            conn = SQLighter(config.database_name)
+            conn = Postgretor(config.database_name)
             tpl = (user.name, user.city, user.phone_number,
                    user.language, user.decision)
             res = conn.add_user(tpl)

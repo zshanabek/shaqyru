@@ -9,6 +9,7 @@ verify_ssl = true
 pytelegrambotapi = "*"
 python-i18n = {extras = ["yaml"],version = "*"}
 phonenumbers = "*"
+psycopg2 = "*"
 
 [requires]
 python_version = "3.6"

@@ -1,10 +1,11 @@
-import sqlite3
+import psycopg2
 
 
-class SQLighter:
+class Postgretor:
 
     def __init__(self, database):
-        self.connection = sqlite3.connect(database)
+        self.connection = psycopg2.connect(
+            host="localhost", database="elimai", user="postgres", password="postgres")
         self.cursor = self.connection.cursor()
 
     def select_cities(self):

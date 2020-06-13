@@ -79,7 +79,7 @@ def callback_query(call):
             user_dict[chat_id] = user
             bot.answer_callback_query(call.id, "Қазақша тілі таңдалды")
             send_video(call.message)
-        bot.send_video(chat_id, config.video_id, None)
+        bot.send_message(chat_id, 'VIDEO WILL BE THIS', None)
         choices = {'cb_no': config.localization[user_dict[chat_id].language]
                    ['no'], 'cb_yes': config.localization[user_dict[chat_id].language]
                    ['yes']}
@@ -157,7 +157,7 @@ def process_phone_step(message):
         bot.register_next_step_handler(msg, process_confirmation_step)
     except PhoneExists:
         msg = bot.send_message(
-            message.chat.id, config.localization[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, True, False))
+            message.chat.id, config.localization[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, False, False))
         bot.register_next_step_handler(msg, process_phone_step)
     except Exception:
         buttons = (config.localization[user.language]['send_contact'],)

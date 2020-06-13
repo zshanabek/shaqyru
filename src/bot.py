@@ -23,37 +23,74 @@ class User:
         self.decision = None
 
 
-languages = {'cb_ru': 'Русский', 'cb_kz': 'Казахский'}
-choices_ru = {'cb_no': 'Нет', 'cb_yes': 'Да'}
-choices_kz = {'cb_no': 'Жоқ', 'cb_yes': 'Йә'}
+class Error(Exception):
+    """Base class for other exceptions"""
+    pass
 
 
-def gen_markup(dict, row_width):
-    kb = types.InlineKeyboardMarkup()
-    kb.row_width = row_width
+class PhoneExists(Error):
+    pass
+
+
+languages = {'cb_ru': 'Русский', 'cb_kz': 'Қазақша'}
+
+
+def gen_reply_markup(words, row_width, isOneTime, isContact):
+    keyboard = types.ReplyKeyboardMarkup(
+        one_time_keyboard=isOneTime, row_width=row_width)
+    for word in words:
+        keyboard.add(types.KeyboardButton(
+            text=word, request_contact=isContact))
+    return keyboard
+
+
+def gen_inline_markup(dict, row_width):
+    markup = types.InlineKeyboardMarkup()
+    markup.row_width = row_width
+    buttons = []
     for key in dict:
-        kb.add(types.InlineKeyboardButton(
+        buttons.append(types.InlineKeyboardButton(
             text=dict[key], callback_data=key))
-    return kb
+    if row_width == 0:
+        for button in buttons:
+            markup.add(button)
+    else:
+        markup.add(*buttons)
+    return markup
+
+
+@bot.message_handler(commands=['start', 'help'])
+def send_welcome(message):
+    msg = bot.send_message(message.chat.id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
+                           reply_markup=gen_inline_markup(languages, 2))
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
-    if call.data == "cb_ru":
-        user = User('ru')
-        user_dict[chat_id] = user
-        bot.answer_callback_query(call.id, "Выбран русский язык")
-        send_video(call.message)
-    elif call.data == "cb_kz":
-        user = User('kz')
-        user_dict[chat_id] = user
-        bot.answer_callback_query(call.id, "Қазақша тілі таңдалды")
-        send_video(call.message)
+    if call.data in ("cb_ru", "cb_kz"):
+        if call.data == "cb_ru":
+            user = User('ru')
+            user_dict[chat_id] = user
+            bot.answer_callback_query(call.id, "Выбран русский язык")
+            send_video(call.message)
+        elif call.data == "cb_kz":
+            user = User('kz')
+            user_dict[chat_id] = user
+            bot.answer_callback_query(call.id, "Қазақша тілі таңдалды")
+            send_video(call.message)
+        bot.send_video(chat_id, config.video_id, None)
+        choices = {'cb_no': config.localization[user_dict[chat_id].language]
+                   ['no'], 'cb_yes': config.localization[user_dict[chat_id].language]
+                   ['yes']}
+        bot.send_message(chat_id, config.localization[user_dict[chat_id].language]
+                         ['offer'], reply_markup=gen_inline_markup(choices, 2))
     elif call.data == "cb_no":
         user = user_dict[chat_id]
         user.decision = False
         try:
+            bot.answer_callback_query(
+                call.id, config.localization[user.language]['no'])
             bot.edit_message_text(
                 config.localization[user.language]['deny'], chat_id, call.message.message_id)
         except Exception as e:
@@ -61,6 +98,8 @@ def callback_query(call):
     elif call.data == "cb_yes":
         user = user_dict[chat_id]
         user.decision = True
+        bot.answer_callback_query(
+            call.id, config.localization[user.language]['yes'])
         msg = bot.send_message(
             chat_id, config.localization[user.language]['name'])
         bot.register_next_step_handler(msg, process_name_step)
@@ -68,26 +107,14 @@ def callback_query(call):
         city = int(call.data[1])
         user = user_dict[chat_id]
         user.city = city
-        markup = types.ReplyKeyboardMarkup()
-        itembtn = types.KeyboardButton(
-            'Отправить контакт', request_contact=True)
-        markup.add(itembtn)
+        buttons = (config.localization[user.language]['send_contact'],)
         msg = bot.send_message(
-            chat_id, 'Нажмите на кнопку, чтобы поделиться телефонным номером, который привязан к этому Телеграм аккаунту. Если вы хотите указать другой номер, то введите его в формате +77021745639.', reply_markup=markup)
+            chat_id, config.localization[user.language]['number'], reply_markup=gen_reply_markup(buttons, 1, False, True))
         bot.register_next_step_handler(msg, process_phone_step)
-
-
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    msg = bot.send_message(message.chat.id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019" Выберите язык на котором хотите продолжить разговор',
-                           reply_markup=gen_markup(languages, 2))
 
 
 def send_video(message):
     chat_id = message.chat.id
-    bot.send_video(chat_id, config.video_id, None)
-    bot.edit_message_text(config.localization[user_dict[chat_id].language]
-                          ['offer'], chat_id, message.message_id, reply_markup=gen_markup(choices_ru, 2))
 
 
 def process_name_step(message):
@@ -97,12 +124,8 @@ def process_name_step(message):
     user.name = name
     conn = SQLighter(config.database_name)
     res = conn.select_cities()
-    lang = 0
     cities = []
-    if user.language == "kz":
-        lang = 1
-    else:
-        lang = 2
+    lang = 2 if user.language == "kz" else 3
     for i in range(len(res)):
         cities.append(res[i][lang])
     callbacks = []
@@ -110,7 +133,7 @@ def process_name_step(message):
         callbacks.append('c'+str(res[i][0]))
     cities = dict(zip(callbacks, cities))
     msg = bot.send_message(
-        chat_id, f"{user.name}, {config.localization[user.language]['city']}", reply_markup=gen_markup(cities, 2))
+        chat_id, f"{user.name}, {config.localization[user.language]['city']}", reply_markup=gen_inline_markup(cities, 1))
 
 
 def process_phone_step(message):
@@ -121,26 +144,45 @@ def process_phone_step(message):
             user.phone_number = message.contact.phone_number
         else:
             number = message.text
-            if (carrier._is_mobile(number_type(phonenumbers.parse(number)))):
-                user.phone_number = number
-        if user.phone_number == None:
-            raise Exception()
+            if not (carrier._is_mobile(number_type(phonenumbers.parse(number)))):
+                raise Exception
+            user.phone_number = number
         conn = SQLighter(config.database_name)
-        tpl = (user.name, user.city, user.phone_number,
-               user.language, user.decision)
-        res = conn.add_user(tpl)
-        decision = f"Дорогой гость, я приглашаю тебя в [чат]({config.invite_link})"
-        markup = types.ReplyKeyboardRemove(selective=False)
-        bot.send_message(chat_id, decision,
-                         reply_markup=markup, parse_mode="MarkdownV2")
-    except Exception as e:
-        markup = types.ReplyKeyboardMarkup()
-        itembtn = types.KeyboardButton(
-            'Отправить контакт', request_contact=True)
-        markup.add(itembtn)
+        if conn.exist_user(user.phone_number):
+            raise PhoneExists
+        options = [config.localization[user.language]['no'],
+                   config.localization[user.language]['yes']]
         msg = bot.send_message(
-            message.chat.id, 'Что-то не похоже на нормальный номер. Если не хотите вводить номер, то проще нажать на кнопку ниже. Или же введите его в формате +77021745639.', reply_markup=markup)
+            chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 2, True, False))
+        bot.register_next_step_handler(msg, process_confirmation_step)
+    except PhoneExists:
+        msg = bot.send_message(
+            message.chat.id, config.localization[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, True, False))
         bot.register_next_step_handler(msg, process_phone_step)
+    except Exception:
+        buttons = (config.localization[user.language]['send_contact'],)
+        msg = bot.send_message(
+            message.chat.id, config.localization[user.language]['number_invalid'], reply_markup=gen_reply_markup(buttons, 1, False, True))
+        bot.register_next_step_handler(msg, process_phone_step)
+
+
+def process_confirmation_step(message):
+    try:
+        chat_id = message.chat.id
+        confirm = message.text
+        user = user_dict[chat_id]
+        if confirm in ('Да', 'Йә'):
+            conn = SQLighter(config.database_name)
+            tpl = (user.name, user.city, user.phone_number,
+                   user.language, user.decision)
+            res = conn.add_user(tpl)
+            decision = config.localization[user.language]['invite']
+            bot.send_message(chat_id, decision, parse_mode="MarkdownV2")
+        elif confirm in ('Нет', 'Жоқ'):
+            decision = config.localization[user.language]['cancel_registration']
+            bot.send_message(chat_id, decision)
+    except Exception as e:
+        bot.reply_to(message, 'oooops')
 
 
 bot.polling()

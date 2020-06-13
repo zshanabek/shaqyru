@@ -1,20 +1,32 @@
 BEGIN TRANSACTION;
-CREATE TABLE `users` (
-	`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-	`name` TEXT NOT NULL,
-	`age` INTEGER,
-	`sex` INTEGER
+CREATE TABLE IF NOT EXISTS "users" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+	"name" TEXT,
+	"city_id" INTEGER,
+	"phone_number" TEXT,
+	"language" TEXT,
+	"decision" INTEGER,
+	FOREIGN KEY("city_id") REFERENCES "cities"("id") ON DELETE
+	SET NULL
 );
-INSERT INTO `users`
-VALUES (1, 'mama', 12, 1);
-CREATE TABLE `cities` (
-	`id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-	`name` TEXT NOT NULL,
-	`name_kz` TEXT NOT NULL,
-	`name_ru` TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS "cities" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+	"name" TEXT NOT NULL,
+	"name_kz" NUMERIC NOT NULL,
+	"name_ru" TEXT NOT NULL
 );
-INSERT INTO `cities`
-VALUES (1, 'Astana', 'Астана', 'Астана'),
-	(2, 'Almaty', 'Алматы', 'Алматы'),
+INSERT INTO "users" (
+		"id",
+		"name",
+		"city_id",
+		"phone_number",
+		"language",
+		"decision"
+	)
+VALUES (4, 'Kola', 2, '+77785547554', 'ru', 1),
+	(5, 'dfdfdf', 2, '+77078419016', 'ru', 1);
+INSERT INTO "cities" ("id", "name", "name_kz", "name_ru")
+VALUES (1, 'Almaty', 'Алматы', 'Алматы'),
+	(2, 'Astana', 'Астана', 'Астана'),
 	(3, 'Shymkent', 'Шымкент', 'Шымкент');
 COMMIT;

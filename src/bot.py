@@ -1,3 +1,4 @@
+import sentry_sdk
 import time
 import telebot
 import logging
@@ -14,6 +15,9 @@ logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
 user_dict = {}
 conn = Postgretor()
+
+sentry_sdk.init(
+    "https://28251dceb1e74021a30190263a96196d@o406290.ingest.sentry.io/5273457")
 
 
 class User:

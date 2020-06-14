@@ -110,7 +110,7 @@ def callback_query(call):
             user.decision = True
             bot.answer_callback_query(
                 call.id, config.localization[user.language]['yes'])
-            if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[-1]:
+            if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[7]:
                 res = conn.select_user(user.telegram_id)
                 bot.send_message(chat_id, 'Пользователь уже зарегестрирован')
             else:
@@ -185,7 +185,7 @@ def process_confirmation_step(message):
         confirm = message.text
         user = user_dict[chat_id]
         if confirm in ('Да', 'Йә'):
-            if conn.exist_user(user.telegram_id) and not conn.select_user(user.telegram_id)[-1]:
+            if conn.exist_user(user.telegram_id) and not conn.select_user(user.telegram_id)[7]:
                 tpl = [user.name, user.city, user.phone_number,
                        user.language, user.decision, user.telegram_id]
                 conn.update_user(tpl)

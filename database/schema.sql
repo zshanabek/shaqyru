@@ -20,7 +20,15 @@ CREATE TABLE "users" (
 	"telegram_id" VARCHAR (10),
 	"telegram_username" VARCHAR(50),
 	"decision" BOOLEAN,
+	"created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	"updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	FOREIGN KEY("city_id") REFERENCES "cities"("id") ON DELETE
 	SET NULL
 );
+CREATE OR REPLACE FUNCTION update_updated_at_column() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now();
+RETURN NEW;
+END;
+$$ language 'plpgsql';
+CREATE TRIGGER update_users_updated_at BEFORE
+UPDATE ON users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 COMMIT;

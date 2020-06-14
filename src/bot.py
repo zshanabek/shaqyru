@@ -1,11 +1,13 @@
-from postgretor import Postgretor
-import config
+import time
 import telebot
-from telebot import types
 import logging
 import phonenumbers
+from telebot import types
 from phonenumbers import carrier
 from phonenumbers.phonenumberutil import number_type
+
+import config
+from postgretor import Postgretor
 
 bot = telebot.TeleBot(config.token)
 logger = telebot.logger
@@ -84,6 +86,7 @@ def callback_query(call):
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
         bot.send_message(chat_id, 'VIDEO WILL BE THIS')
+        time.sleep(5)
         choices = {'cb_no': config.localization[user_dict[chat_id].language]['no'],
                    'cb_yes': config.localization[user_dict[chat_id].language]['yes']}
         bot.send_message(chat_id, config.localization[user_dict[chat_id].language]

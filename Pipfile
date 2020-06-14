@@ -11,6 +11,7 @@ python-i18n = {extras = ["yaml"],version = "*"}
 phonenumbers = "*"
 psycopg2 = "*"
 python-dotenv = "*"
+schedule = "*"
 
 [requires]
 python_version = "3.6"

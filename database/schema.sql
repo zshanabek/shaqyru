@@ -1,6 +1,6 @@
 BEGIN TRANSACTION;
-drop table "users";
-drop table "cities";
+drop table if exists "users";
+drop table if exists "cities";
 CREATE TABLE "cities" (
 	"id" serial PRIMARY KEY,
 	"name" VARCHAR (25) NOT NULL,

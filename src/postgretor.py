@@ -14,7 +14,7 @@ PG_PASSWORD = os.getenv("PG_PASSWORD")
 
 class Postgretor:
 
-    def __init__(self, database):
+    def __init__(self):
         self.connection = psycopg2.connect(
             host=PG_HOST, database=PG_DATABASE, user=PG_USER, password=PG_PASSWORD)
         self.cursor = self.connection.cursor()

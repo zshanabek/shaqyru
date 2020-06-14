@@ -11,7 +11,7 @@ bot = telebot.TeleBot(config.token)
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
 user_dict = {}
-conn = Postgretor(config.database_name)
+conn = Postgretor()
 
 
 class User:
@@ -186,9 +186,10 @@ def process_confirmation_step(message):
                 tpl = [user.name, user.city, user.phone_number,
                        user.language, user.decision, user.telegram_id]
                 conn.update_user(tpl)
-            tpl = (user.name, user.city, user.phone_number, user.language,
-                   user.telegram_id, user.username, user.decision)
-            res = conn.add_user(tpl)
+            else:
+                tpl = (user.name, user.city, user.phone_number, user.language,
+                       user.telegram_id, user.username, user.decision)
+                res = conn.add_user(tpl)
             decision = config.localization[user.language]['invite']
             bot.send_message(chat_id, decision, parse_mode="MarkdownV2")
         elif confirm in ('Нет', 'Жоқ'):

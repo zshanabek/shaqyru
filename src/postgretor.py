@@ -1,11 +1,22 @@
+import os
+import pdb
 import psycopg2
+from dotenv import load_dotenv
+from pathlib import Path  # Python 3.6+ only
+env_path = Path('../') / '.env'
+load_dotenv(dotenv_path=env_path)
+
+PG_HOST = os.getenv("PG_HOST")
+PG_DATABASE = os.getenv("PG_DATABASE")
+PG_USER = os.getenv("PG_USER")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
 
 
 class Postgretor:
 
     def __init__(self, database):
         self.connection = psycopg2.connect(
-            host="localhost", database="elimai", user="batyr", password="qupiasoz")
+            host=PG_HOST, database=PG_DATABASE, user=PG_USER, password=PG_PASSWORD)
         self.cursor = self.connection.cursor()
 
     def select_cities(self):

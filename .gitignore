@@ -3,3 +3,4 @@ __pycache__/
 src/test.py
 video
 shaqyru.db
+.env

@@ -10,6 +10,7 @@ pytelegrambotapi = "*"
 python-i18n = {extras = ["yaml"],version = "*"}
 phonenumbers = "*"
 psycopg2 = "*"
+python-dotenv = "*"
 
 [requires]
 python_version = "3.6"

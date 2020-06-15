@@ -21,7 +21,7 @@ class Postgretor:
 
     def select_cities(self):
         with self.connection:
-            self.cursor.execute('SELECT * FROM cities')
+            self.cursor.execute('SELECT * FROM cities ORDER BY name')
             return self.cursor.fetchall()
 
     def select_city(self, id):

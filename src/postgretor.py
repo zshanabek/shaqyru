@@ -24,6 +24,11 @@ class Postgretor:
             self.cursor.execute('SELECT * FROM cities')
             return self.cursor.fetchall()
 
+    def select_city(self, id):
+        with self.connection:
+            self.cursor.execute('SELECT * FROM cities where id = %s', (id,))
+            return self.cursor.fetchall()
+
     def exist_phone(self, phone):
         with self.connection:
             self.cursor.execute(

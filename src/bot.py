@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import sentry_sdk
 import time
 import telebot
@@ -6,7 +8,6 @@ import phonenumbers
 from telebot import types
 from phonenumbers import carrier
 from phonenumbers.phonenumberutil import number_type
-
 import config
 from postgretor import Postgretor
 
@@ -40,12 +41,12 @@ class PhoneExists(Error):
     pass
 
 
-languages = {'cb_ru': 'Русский', 'cb_kz': 'Қазақша'}
+languages = {'cb_ru': f"Русский 🇷🇺️", 'cb_kz': "Қазақша 🇰🇿️"}
 
 
 def gen_reply_markup(words, row_width, isOneTime, isContact):
     keyboard = types.ReplyKeyboardMarkup(
-        one_time_keyboard=isOneTime, row_width=row_width)
+        one_time_keyboard=isOneTime, row_width=row_width, resize_keyboard=True)
     for word in words:
         keyboard.add(types.KeyboardButton(
             text=word, request_contact=isContact))
@@ -90,9 +91,9 @@ def callback_query(call):
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
         bot.send_message(chat_id, 'VIDEO WILL BE THIS')
-        time.sleep(5)
-        choices = {'cb_no': config.localization[user_dict[chat_id].language]['no'],
-                   'cb_yes': config.localization[user_dict[chat_id].language]['yes']}
+        time.sleep(3)
+        choices = {'cb_yes': config.localization[user_dict[chat_id].language]['yes'],
+                   'cb_no': config.localization[user_dict[chat_id].language]['no'], }
         bot.send_message(chat_id, config.localization[user_dict[chat_id].language]
                          ['offer'], reply_markup=gen_inline_markup(choices, 2))
     elif call.data == "cb_no":
@@ -166,9 +167,11 @@ def process_phone_step(message):
             raise PhoneExists
         options = [config.localization[user.language]['no'],
                    config.localization[user.language]['yes']]
+        lang = 2 if user.language == "kz" else 3
+        city_name = conn.select_city(user.city)[0][lang]
         bot.send_message(chat_id, f'Имя: {user.name}\n'
-                                  f'Номер: {user.phone_number}\n'
-                                  f'Город: {user.city}')
+                         f'Номер: {user.phone_number}\n'
+                         f'Город: {city_name}')
         msg = bot.send_message(
             chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 1, True, False))
         bot.register_next_step_handler(msg, process_confirmation_step)
@@ -197,8 +200,11 @@ def process_confirmation_step(message):
                 tpl = (user.name, user.city, user.phone_number, user.language,
                        user.telegram_id, user.username, user.decision)
                 res = conn.add_user(tpl)
-            decision = config.localization[user.language]['invite']
-            bot.send_message(chat_id, decision, parse_mode="MarkdownV2")
+            lang = 2 if user.language == "kz" else 3
+            markup = types.ReplyKeyboardRemove(selective=False)
+            bot.send_message(-414383943, f'Имя: {user.name}\n'
+                             f'Номер: {user.phone_number}\n'
+                             f'Город: {conn.select_city(user.city)[0][lang]}', reply_markup=markup)
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.localization[user.language]['cancel_registration']
             bot.send_message(chat_id, decision)

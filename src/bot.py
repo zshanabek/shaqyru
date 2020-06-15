@@ -141,7 +141,7 @@ def process_name_step(message):
     user.name = name
     res = conn.select_cities()
     cities = []
-    lang = 2 if user.language == "kz" else 3
+    lang = 3 if user.language == "kz" else 2
     for i in range(len(res)):
         cities.append(res[i][lang])
     callbacks = []
@@ -167,7 +167,7 @@ def process_phone_step(message):
             raise PhoneExists
         options = [config.localization[user.language]['no'],
                    config.localization[user.language]['yes']]
-        lang = 2 if user.language == "kz" else 3
+        lang = 3 if user.language == "kz" else 2
         city_name = conn.select_city(user.city)[0][lang]
         bot.send_message(chat_id, f'Имя: {user.name}\n'
                          f'Номер: {user.phone_number}\n'
@@ -191,6 +191,7 @@ def process_confirmation_step(message):
         chat_id = message.chat.id
         confirm = message.text
         user = user_dict[chat_id]
+        markup = types.ReplyKeyboardRemove(selective=False)
         if confirm in ('Да', 'Йә'):
             if conn.exist_user(user.telegram_id) and not conn.select_user(user.telegram_id)[7]:
                 tpl = [user.name, user.city, user.phone_number,
@@ -200,14 +201,13 @@ def process_confirmation_step(message):
                 tpl = (user.name, user.city, user.phone_number, user.language,
                        user.telegram_id, user.username, user.decision)
                 res = conn.add_user(tpl)
-            lang = 2 if user.language == "kz" else 3
-            markup = types.ReplyKeyboardRemove(selective=False)
+            lang = 3 if user.language == "kz" else 2
             bot.send_message(-414383943, f'Имя: {user.name}\n'
                              f'Номер: {user.phone_number}\n'
                              f'Город: {conn.select_city(user.city)[0][lang]}', reply_markup=markup)
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.localization[user.language]['cancel_registration']
-            bot.send_message(chat_id, decision)
+            bot.send_message(chat_id, decision, reply_markup=markup)
     except Exception as e:
         bot.reply_to(message, 'oooops')
 

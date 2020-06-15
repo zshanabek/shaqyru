@@ -7,7 +7,7 @@ CREATE TABLE "cities" (
 	"name_kz" VARCHAR (25) NOT NULL,
 	"name_ru" VARCHAR (25) NOT NULL
 );
-INSERT INTO "cities" ("id", "name", "name_kz", "name_ru")
+INSERT INTO "cities" ("id", "name", "name_ru", "name_kz")
 VALUES (1, 'Almaty', 'Алматы', 'Алматы'),
 	(2, 'Astana', 'Астана', 'Астана'),
 	(3, 'Shymkent', 'Шымкент', 'Шымкент'),

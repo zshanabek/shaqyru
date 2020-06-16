@@ -101,7 +101,7 @@ def callback_query(call):
         elif call.data == "cb_kz":
             user = User('kz')
             user_dict[chat_id] = user
-            bot.answer_callback_query(call.id, "Қазақша тілі таңдалды")
+            bot.answer_callback_query(call.id, "Қазақ тілі таңдалды")
         user = user_dict[chat_id]
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
@@ -133,7 +133,8 @@ def callback_query(call):
                 call.id, config.localization[user.language]['yes'])
             if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[7]:
                 res = conn.select_user(user.telegram_id)
-                bot.send_message(chat_id, 'Пользователь уже зарегестрирован')
+                bot.send_message(
+                    chat_id, config.localization[user.language]['already_registered'])
             else:
                 msg = bot.send_message(
                     chat_id, config.localization[user.language]['name'])
@@ -185,9 +186,9 @@ def process_phone_step(message):
                    config.localization[user.language]['yes']]
         lang = 3 if user.language == "kz" else 2
         city_name = conn.select_city(user.city)[0][lang]
-        bot.send_message(chat_id, f'Имя: {user.name}\n'
-                         f'Номер: {user.phone_number}\n'
-                         f'Город: {city_name}')
+        bot.send_message(chat_id, f'{config.localization[user.language]["name_single"]}: {user.name}\n'
+                         f'{config.localization[user.language]["number_single"]}: {user.phone_number}\n'
+                         f'{config.localization[user.language]["city_single"]}: {city_name}')
         msg = bot.send_message(
             chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 2, True, False))
         bot.register_next_step_handler(msg, process_confirmation_step)
@@ -223,9 +224,10 @@ def process_confirmation_step(message):
                              f'ID: {id}\n'
                              f'Имя: {user.name}\n'
                              f'Номер: {user.phone_number}\n'
-                             f'Город: {conn.select_city(user.city)[0][lang]}', disable_notification=True)
+                             f'Город: {conn.select_city(user.city)[0][lang]}\n'
+                             f'Язык: {user.language}', disable_notification=True)
             bot.send_message(
-                chat_id, 'Отлично, данные сохранены', reply_markup=markup)
+                chat_id, config.localization[user_dict[chat_id].language]['success_registration'], reply_markup=markup)
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.localization[user.language]['cancel_registration']
             bot.send_message(chat_id, decision, reply_markup=markup)

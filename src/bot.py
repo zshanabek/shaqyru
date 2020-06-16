@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import os
 import sentry_sdk
 import time
 import telebot
@@ -8,17 +8,23 @@ import phonenumbers
 from telebot import types
 from phonenumbers import carrier
 from phonenumbers.phonenumberutil import number_type
+
 import config
 from postgretor import Postgretor
+from dotenv import load_dotenv
+from pathlib import Path
+env_path = Path('../') / '.env'
+load_dotenv(dotenv_path=env_path)
 
-bot = telebot.TeleBot(config.token)
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG)
 user_dict = {}
 conn = Postgretor()
 
-sentry_sdk.init(
-    "https://28251dceb1e74021a30190263a96196d@o406290.ingest.sentry.io/5273457")
+if os.getenv("ENV") != "DEVELOPMENT":
+    sentry_sdk.init(
+        "https://28251dceb1e74021a30190263a96196d@o406290.ingest.sentry.io/5273457")
 
 
 class User:
@@ -45,12 +51,18 @@ languages = {'cb_ru': f"Русский 🇷🇺️", 'cb_kz': "Қазақша �
 
 
 def gen_reply_markup(words, row_width, isOneTime, isContact):
-    keyboard = types.ReplyKeyboardMarkup(
+    markup = types.ReplyKeyboardMarkup(
         one_time_keyboard=isOneTime, row_width=row_width, resize_keyboard=True)
+    buttons = []
     for word in words:
-        keyboard.add(types.KeyboardButton(
+        buttons.append(types.KeyboardButton(
             text=word, request_contact=isContact))
-    return keyboard
+    if row_width == 0:
+        for b in buttons:
+            markup.add(b)
+    else:
+        markup.add(*buttons)
+    return markup
 
 
 def gen_inline_markup(dict, row_width):
@@ -71,8 +83,11 @@ def gen_inline_markup(dict, row_width):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     chat_id = message.chat.id
-    msg = bot.send_message(chat_id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
-                           reply_markup=gen_inline_markup(languages, 2))
+    if (message.chat.type == "private"):
+        bot.send_message(chat_id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
+                         reply_markup=gen_inline_markup(languages, 2))
+    else:
+        bot.send_message(chat_id, "Бот работает в личном чате")
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -91,7 +106,8 @@ def callback_query(call):
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
         bot.send_message(chat_id, 'VIDEO WILL BE THIS')
-        time.sleep(3)
+        if os.getenv("ENV") != "DEVELOPMENT":
+            time.sleep(3)
         choices = {'cb_yes': config.localization[user_dict[chat_id].language]['yes'],
                    'cb_no': config.localization[user_dict[chat_id].language]['no'], }
         bot.send_message(chat_id, config.localization[user_dict[chat_id].language]
@@ -108,7 +124,7 @@ def callback_query(call):
                        user.language, user.telegram_id, user.username, user.decision)
                 res = conn.add_user(tpl)
         except Exception as e:
-            pass
+            bot.reply_to(call.message, 'oooops')
     elif call.data == "cb_yes":
         try:
             user = user_dict[chat_id]
@@ -123,7 +139,7 @@ def callback_query(call):
                     chat_id, config.localization[user.language]['name'])
                 bot.register_next_step_handler(msg, process_name_step)
         except Exception as e:
-            bot.reply_to(message, 'oooops')
+            bot.reply_to(call.message, 'oooops')
     elif call.data[0] == 'c':
         city = int(call.data[1])
         user = user_dict[chat_id]
@@ -173,7 +189,7 @@ def process_phone_step(message):
                          f'Номер: {user.phone_number}\n'
                          f'Город: {city_name}')
         msg = bot.send_message(
-            chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 1, True, False))
+            chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 2, True, False))
         bot.register_next_step_handler(msg, process_confirmation_step)
     except PhoneExists:
         msg = bot.send_message(
@@ -193,18 +209,23 @@ def process_confirmation_step(message):
         user = user_dict[chat_id]
         markup = types.ReplyKeyboardRemove(selective=False)
         if confirm in ('Да', 'Йә'):
+            id = None
             if conn.exist_user(user.telegram_id) and not conn.select_user(user.telegram_id)[7]:
                 tpl = [user.name, user.city, user.phone_number,
                        user.language, user.decision, user.telegram_id]
-                conn.update_user(tpl)
+                id = conn.update_user(tpl)
             else:
                 tpl = (user.name, user.city, user.phone_number, user.language,
                        user.telegram_id, user.username, user.decision)
-                res = conn.add_user(tpl)
+                id = conn.add_user(tpl)
             lang = 3 if user.language == "kz" else 2
-            bot.send_message(-414383943, f'Имя: {user.name}\n'
+            bot.send_message(os.getenv("GROUP_CHAT_ID"),
+                             f'ID: {id}\n'
+                             f'Имя: {user.name}\n'
                              f'Номер: {user.phone_number}\n'
-                             f'Город: {conn.select_city(user.city)[0][lang]}', reply_markup=markup)
+                             f'Город: {conn.select_city(user.city)[0][lang]}', disable_notification=True)
+            bot.send_message(
+                chat_id, 'Отлично, данные сохранены', reply_markup=markup)
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.localization[user.language]['cancel_registration']
             bot.send_message(chat_id, decision, reply_markup=markup)

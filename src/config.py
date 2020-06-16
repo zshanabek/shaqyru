@@ -1,4 +1,3 @@
-token = "1218387261:AAGMn_ilGDQAlj18XCTXsx1D9qpOVCWkZWE"
 video_id = "BAACAgIAAxkDAAMWXt_AyjRDILjidvjH_nQ3hhsiQnAAAlYGAAJIoAABS3-T7oCbOvwGGgQ"
 invite_link = 'https://t.me/joinchat/QgJJsVYyxAtZCCyI2vvcNQ'
 

@@ -1,5 +1,4 @@
 import os
-import pdb
 import psycopg2
 from dotenv import load_dotenv
 from pathlib import Path  # Python 3.6+ only
@@ -56,12 +55,14 @@ class Postgretor:
     def add_user(self, user):
         with self.connection:
             self.cursor.execute(
-                'INSERT INTO users (name, city_id, phone_number, language, telegram_id, telegram_username, decision) VALUES (%s,%s,%s,%s,%s,%s,%s)', user)
+                'INSERT INTO users (name, city_id, phone_number, language, telegram_id, telegram_username, decision) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id;', user)
+            return self.cursor.fetchone()[0]
 
     def update_user(self, user):
         with self.connection:
             self.cursor.execute(
-                'UPDATE users SET name = %s, city_id = %s, phone_number = %s, language = %s, decision = %s WHERE telegram_id=%s', user)
+                'UPDATE users SET name = %s, city_id = %s, phone_number = %s, language = %s, decision = %s WHERE telegram_id=%s RETURNING id;', user)
+            return self.cursor.fetchone()[0]
 
     def close(self):
         """ Закрываем текущее соединение с БД """

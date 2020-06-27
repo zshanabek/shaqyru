@@ -1,9 +1,9 @@
 import os
 import psycopg2
 from dotenv import load_dotenv
-from pathlib import Path  # Python 3.6+ only
-env_path = Path('../') / '.env'
-load_dotenv(dotenv_path=env_path)
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(BASEDIR, '.env'))
 
 PG_HOST = os.getenv("PG_HOST")
 PG_DATABASE = os.getenv("PG_DATABASE")

@@ -7,11 +7,9 @@ verify_ssl = true
 
 [packages]
 pytelegrambotapi = "*"
-python-i18n = {extras = ["yaml"],version = "*"}
 phonenumbers = "*"
 psycopg2 = "*"
 python-dotenv = "*"
-schedule = "*"
 sentry-sdk = "*"
 
 [requires]

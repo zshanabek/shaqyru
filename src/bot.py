@@ -8,19 +8,19 @@ import phonenumbers
 from telebot import types
 from phonenumbers import carrier
 from phonenumbers.phonenumberutil import number_type
-
 import config
 from postgretor import Postgretor
 from dotenv import load_dotenv
-from pathlib import Path
-env_path = Path('../') / '.env'
-load_dotenv(dotenv_path=env_path)
 
-bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
-logger = telebot.logger
-telebot.logger.setLevel(logging.DEBUG)
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(BASEDIR, '.env'))
 user_dict = {}
 conn = Postgretor()
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
+
+if os.getenv("ENV") == "DEVELOPMENT":
+    logger = telebot.logger
+    telebot.logger.setLevel(logging.DEBUG)
 
 if os.getenv("ENV") != "DEVELOPMENT":
     sentry_sdk.init(

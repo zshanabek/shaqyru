@@ -97,35 +97,33 @@ def callback_query(call):
         if call.data == "cb_ru":
             user = User('ru')
             user_dict[chat_id] = user
-            video = open(
-                '/home/sam/Documents/Projects/bots/shaqyru/video/promo_kz.mp4', 'rb')
-            bot.send_video(chat_id, video)
-            # bot.send_video(chat_id, config.video_id_ru)
+            # video = open(
+            # '/home/sam/Documents/Projects/bots/shaqyru/video/promo_kz.mp4', 'rb')
+            bot.send_video(chat_id, os.getenv("VIDEO_ID_RU"))
             bot.answer_callback_query(call.id, "Выбран русский язык")
         elif call.data == "cb_kz":
             user = User('kz')
             user_dict[chat_id] = user
-            video = open(
-                '/home/sam/Documents/Projects/bots/shaqyru/video/promo_ru.mp4', 'rb')
-            bot.send_video(chat_id, video)
-            # bot.send_video(chat_id, config.video_id_kz)
+            # video = open(
+            # '/home/sam/Documents/Projects/bots/shaqyru/video/promo_ru.mp4', 'rb')
+            bot.send_video(chat_id, os.getenv("VIDEO_ID_KZ"))
             bot.answer_callback_query(call.id, "Қазақ тілі таңдалды")
         user = user_dict[chat_id]
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
         if os.getenv("ENV") != "DEVELOPMENT":
             time.sleep(3)
-        choices = {'cb_yes': config.localization[user_dict[chat_id].language]['yes'],
-                   'cb_no': config.localization[user_dict[chat_id].language]['no'], }
-        bot.send_message(chat_id, config.localization[user_dict[chat_id].language]
+        choices = {'cb_yes': config.l10n[user_dict[chat_id].language]['yes'],
+                   'cb_no': config.l10n[user_dict[chat_id].language]['no'], }
+        bot.send_message(chat_id, config.l10n[user_dict[chat_id].language]
                          ['offer'], reply_markup=gen_inline_markup(choices, 2))
     elif call.data == "cb_no":
         user = user_dict[chat_id]
         try:
             bot.edit_message_text(
-                config.localization[user.language]['deny'], chat_id, call.message.message_id)
+                config.l10n[user.language]['deny'], chat_id, call.message.message_id)
             bot.answer_callback_query(
-                call.id, config.localization[user.language]['no'])
+                call.id, config.l10n[user.language]['no'])
             if not conn.exist_user(str(chat_id)):
                 tpl = (user.name, user.city, user.phone_number,
                        user.language, user.telegram_id, user.username, user.decision)
@@ -137,14 +135,14 @@ def callback_query(call):
             user = user_dict[chat_id]
             user.decision = True
             bot.answer_callback_query(
-                call.id, config.localization[user.language]['yes'])
+                call.id, config.l10n[user.language]['yes'])
             if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[7]:
                 res = conn.select_user(user.telegram_id)
                 bot.send_message(
-                    chat_id, config.localization[user.language]['already_registered'])
+                    chat_id, config.l10n[user.language]['already_registered'])
             else:
                 msg = bot.send_message(
-                    chat_id, config.localization[user.language]['name'])
+                    chat_id, config.l10n[user.language]['name'])
                 bot.register_next_step_handler(msg, process_name_step)
         except Exception as e:
             bot.reply_to(call.message, 'oooops')
@@ -152,9 +150,9 @@ def callback_query(call):
         city = int(call.data[1])
         user = user_dict[chat_id]
         user.city = city
-        buttons = (config.localization[user.language]['send_contact'],)
+        buttons = (config.l10n[user.language]['send_contact'],)
         msg = bot.send_message(
-            chat_id, config.localization[user.language]['number'], reply_markup=gen_reply_markup(buttons, 1, False, True))
+            chat_id, config.l10n[user.language]['number'], reply_markup=gen_reply_markup(buttons, 1, False, True))
         bot.register_next_step_handler(msg, process_phone_step)
 
 
@@ -173,7 +171,7 @@ def process_name_step(message):
         callbacks.append('c'+str(res[i][0]))
     cities = dict(zip(callbacks, cities))
     msg = bot.send_message(
-        chat_id, f"{user.name}, {config.localization[user.language]['city']}", reply_markup=gen_inline_markup(cities, 1))
+        chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=gen_inline_markup(cities, 1))
 
 
 def process_phone_step(message):
@@ -189,24 +187,24 @@ def process_phone_step(message):
             user.phone_number = number
         if conn.exist_phone(user.phone_number):
             raise PhoneExists
-        options = [config.localization[user.language]['no'],
-                   config.localization[user.language]['yes']]
+        options = [config.l10n[user.language]['no'],
+                   config.l10n[user.language]['yes']]
         lang = 3 if user.language == "kz" else 2
         city_name = conn.select_city(user.city)[0][lang]
-        bot.send_message(chat_id, f'{config.localization[user.language]["name_single"]}: {user.name}\n'
-                         f'{config.localization[user.language]["number_single"]}: {user.phone_number}\n'
-                         f'{config.localization[user.language]["city_single"]}: {city_name}')
+        bot.send_message(chat_id, f'{config.l10n[user.language]["name_single"]}: {user.name}\n'
+                         f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
+                         f'{config.l10n[user.language]["city_single"]}: {city_name}')
         msg = bot.send_message(
-            chat_id, config.localization[user.language]['confirm'], reply_markup=gen_reply_markup(options, 2, True, False))
+            chat_id, config.l10n[user.language]['confirm'], reply_markup=gen_reply_markup(options, 2, True, False))
         bot.register_next_step_handler(msg, process_confirmation_step)
     except PhoneExists:
         msg = bot.send_message(
-            message.chat.id, config.localization[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, False, False))
+            message.chat.id, config.l10n[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, False, False))
         bot.register_next_step_handler(msg, process_phone_step)
     except Exception:
-        buttons = (config.localization[user.language]['send_contact'],)
+        buttons = (config.l10n[user.language]['send_contact'],)
         msg = bot.send_message(
-            message.chat.id, config.localization[user.language]['number_invalid'], reply_markup=gen_reply_markup(buttons, 1, False, True))
+            message.chat.id, config.l10n[user.language]['number_invalid'], reply_markup=gen_reply_markup(buttons, 1, False, True))
         bot.register_next_step_handler(msg, process_phone_step)
 
 
@@ -234,9 +232,9 @@ def process_confirmation_step(message):
                              f'Город: {conn.select_city(user.city)[0][lang]}\n'
                              f'Язык: {user.language}', disable_notification=True)
             bot.send_message(
-                chat_id, config.localization[user_dict[chat_id].language]['success_registration'], reply_markup=markup)
+                chat_id, config.l10n[user_dict[chat_id].language]['success_registration'], reply_markup=markup)
         elif confirm in ('Нет', 'Жоқ'):
-            decision = config.localization[user.language]['cancel_registration']
+            decision = config.l10n[user.language]['cancel_registration']
             bot.send_message(chat_id, decision, reply_markup=markup)
     except Exception as e:
         bot.reply_to(message, 'oooops')

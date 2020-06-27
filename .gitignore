@@ -4,3 +4,5 @@ src/test.py
 video
 shaqyru.db
 .env
+Procfile
+Pipfile.lock

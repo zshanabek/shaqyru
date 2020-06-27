@@ -1,4 +1,5 @@
-video_id = "BAACAgIAAxkDAAMWXt_AyjRDILjidvjH_nQ3hhsiQnAAAlYGAAJIoAABS3-T7oCbOvwGGgQ"
+video_id_ru = "BAACAgIAAxkDAAIHSV73c5mEy1v7VjBjcTbGNEJ0acj9AALbBgACLDa5S4_J_5EhXLQ7GgQ"
+video_id_kz = "BAACAgIAAxkDAAIHS173dAF0tO8QY-RroFaq7mEXtwMxAALdBgACLDa5SxeYAAE4TsNxJxoE"
 
 localization = {
     'ru': {

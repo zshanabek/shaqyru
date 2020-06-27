@@ -97,15 +97,22 @@ def callback_query(call):
         if call.data == "cb_ru":
             user = User('ru')
             user_dict[chat_id] = user
+            video = open(
+                '/home/sam/Documents/Projects/bots/shaqyru/video/promo_kz.mp4', 'rb')
+            bot.send_video(chat_id, video)
+            # bot.send_video(chat_id, config.video_id_ru)
             bot.answer_callback_query(call.id, "Выбран русский язык")
         elif call.data == "cb_kz":
             user = User('kz')
             user_dict[chat_id] = user
+            video = open(
+                '/home/sam/Documents/Projects/bots/shaqyru/video/promo_ru.mp4', 'rb')
+            bot.send_video(chat_id, video)
+            # bot.send_video(chat_id, config.video_id_kz)
             bot.answer_callback_query(call.id, "Қазақ тілі таңдалды")
         user = user_dict[chat_id]
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
-        bot.send_message(chat_id, 'VIDEO WILL BE THIS')
         if os.getenv("ENV") != "DEVELOPMENT":
             time.sleep(3)
         choices = {'cb_yes': config.localization[user_dict[chat_id].language]['yes'],

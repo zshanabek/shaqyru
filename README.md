@@ -1,6 +1,6 @@
 # Shaqyru
 
-Telegram bot saves data about users and forwards it to group chat. Like Google Forms
+Telegram bot saves data about users and forwards it to group chat. Try [demo](https://t.me/Elimai2019bot).
 
 shaqyru - word from Kazakh шақыру ("invite").
 

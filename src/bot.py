@@ -94,28 +94,23 @@ def send_welcome(message):
 def callback_query(call):
     chat_id = call.message.chat.id
     if call.data in ("cb_ru", "cb_kz"):
-        if call.data == "cb_ru":
-            user = User('ru')
-            user_dict[chat_id] = user
-            # video = open(
-            # '/home/sam/Documents/Projects/bots/shaqyru/video/promo_kz.mp4', 'rb')
-            bot.send_video(chat_id, os.getenv("VIDEO_ID_RU"))
-            bot.answer_callback_query(call.id, "Выбран русский язык")
-        elif call.data == "cb_kz":
-            user = User('kz')
-            user_dict[chat_id] = user
-            # video = open(
-            # '/home/sam/Documents/Projects/bots/shaqyru/video/promo_ru.mp4', 'rb')
-            bot.send_video(chat_id, os.getenv("VIDEO_ID_KZ"))
-            bot.answer_callback_query(call.id, "Қазақ тілі таңдалды")
-        user = user_dict[chat_id]
+        language = 'kz' if call.data == 'cb_kz' else 'ru'
+        user = User(language)
+        user_dict[chat_id] = user
+        bot.answer_callback_query(
+            call.id, config.l10n[user.language]['language'])
+        # video = open(
+        # '/home/sam/Documents/Projects/bots/shaqyru/video/promo_ru.mp4', 'rb')
+        video = 'VIDEO_ID_KZ' if language == 'kz' else 'VIDEO_ID_RU'
+        bot.send_video(chat_id, os.getenv(
+            video), caption=config.l10n[user.language]['video'])
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
         if os.getenv("ENV") != "DEVELOPMENT":
-            time.sleep(3)
-        choices = {'cb_yes': config.l10n[user_dict[chat_id].language]['yes'],
-                   'cb_no': config.l10n[user_dict[chat_id].language]['no'], }
-        bot.send_message(chat_id, config.l10n[user_dict[chat_id].language]
+            time.sleep(89)
+        choices = {'cb_yes': config.l10n[user.language]['yes'],
+                   'cb_no': config.l10n[user.language]['no'], }
+        bot.send_message(chat_id, config.l10n[user.language]
                          ['offer'], reply_markup=gen_inline_markup(choices, 2))
     elif call.data == "cb_no":
         user = user_dict[chat_id]
@@ -232,7 +227,7 @@ def process_confirmation_step(message):
                              f'Город: {conn.select_city(user.city)[0][lang]}\n'
                              f'Язык: {user.language}', disable_notification=True)
             bot.send_message(
-                chat_id, config.l10n[user_dict[chat_id].language]['success_registration'], reply_markup=markup)
+                chat_id, config.l10n[user.language]['success_registration'], reply_markup=markup)
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.l10n[user.language]['cancel_registration']
             bot.send_message(chat_id, decision, reply_markup=markup)

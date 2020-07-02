@@ -159,7 +159,7 @@ def process_name_step(message):
     user.name = name
     res = conn.select_cities()
     cities = []
-    lang = 3 if user.language == "kz" else 2
+    lang = 2 if user.language == "kz" else 3
     for i in range(len(res)):
         cities.append(res[i][lang])
     callbacks = []

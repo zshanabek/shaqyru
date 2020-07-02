@@ -112,37 +112,38 @@ def callback_query(call):
                    'cb_no': config.l10n[user.language]['no'], }
         bot.send_message(chat_id, config.l10n[user.language]
                          ['offer'], reply_markup=gen_inline_markup(choices, 2))
-    elif call.data == "cb_no":
-        user = user_dict[chat_id]
-        try:
-            bot.edit_message_text(
-                config.l10n[user.language]['deny'], chat_id, call.message.message_id)
-            bot.answer_callback_query(
-                call.id, config.l10n[user.language]['no'])
-            if not conn.exist_user(str(chat_id)):
-                tpl = (user.name, user.city, user.phone_number,
-                       user.language, user.telegram_id, user.username, user.decision)
-                res = conn.add_user(tpl)
-        except Exception as e:
-            bot.reply_to(call.message, 'oooops')
-    elif call.data == "cb_yes":
-        try:
+    elif call.data in ("cb_no", "cb_yes"):
+        if call.data == "cb_no":
             user = user_dict[chat_id]
-            user.decision = True
-            bot.answer_callback_query(
-                call.id, config.l10n[user.language]['yes'])
-            if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[7]:
-                res = conn.select_user(user.telegram_id)
-                bot.send_message(
-                    chat_id, config.l10n[user.language]['already_registered'])
-            else:
-                msg = bot.send_message(
-                    chat_id, config.l10n[user.language]['name'])
-                bot.register_next_step_handler(msg, process_name_step)
-        except Exception as e:
-            bot.reply_to(call.message, 'oooops')
-    elif call.data[0] == 'c':
-        city = int(call.data[1])
+            try:
+                bot.edit_message_text(
+                    config.l10n[user.language]['deny'], chat_id, call.message.message_id)
+                bot.answer_callback_query(
+                    call.id, config.l10n[user.language]['no'])
+                if not conn.exist_user(str(chat_id)):
+                    tpl = (user.name, user.city, user.phone_number,
+                           user.language, user.telegram_id, user.username, user.decision)
+                    res = conn.add_user(tpl)
+            except Exception as e:
+                bot.reply_to(call.message, 'oooops')
+        else:
+            try:
+                user = user_dict[chat_id]
+                user.decision = True
+                bot.answer_callback_query(
+                    call.id, config.l10n[user.language]['yes'])
+                if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[7]:
+                    res = conn.select_user(user.telegram_id)
+                    bot.send_message(
+                        chat_id, config.l10n[user.language]['already_registered'])
+                else:
+                    msg = bot.send_message(
+                        chat_id, config.l10n[user.language]['name'])
+                    bot.register_next_step_handler(msg, process_name_step)
+            except Exception as e:
+                bot.reply_to(call.message, 'oooops')
+    else:
+        city = int(call.data.split('_')[-1])
         user = user_dict[chat_id]
         user.city = city
         buttons = (config.l10n[user.language]['send_contact'],)
@@ -163,7 +164,7 @@ def process_name_step(message):
         cities.append(res[i][lang])
     callbacks = []
     for i in range(len(res)):
-        callbacks.append('c'+str(res[i][0]))
+        callbacks.append('cb_city_'+str(res[i][0]))
     cities = dict(zip(callbacks, cities))
     msg = bot.send_message(
         chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=gen_inline_markup(cities, 1))

@@ -107,7 +107,7 @@ def callback_query(call):
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
         if os.getenv("ENV") != "DEVELOPMENT":
-            time.sleep(89)
+            time.sleep(7)
         choices = {'cb_yes': config.l10n[user.language]['yes'],
                    'cb_no': config.l10n[user.language]['no'], }
         bot.send_message(chat_id, config.l10n[user.language]

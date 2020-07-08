@@ -82,12 +82,15 @@ def gen_inline_markup(dict, row_width):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    chat_id = message.chat.id
-    if (message.chat.type == "private"):
-        bot.send_message(chat_id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
-                         reply_markup=gen_inline_markup(languages, 2))
-    else:
-        bot.send_message(chat_id, "Бот работает в личном чате")
+    try:
+        chat_id = message.chat.id
+        if (message.chat.type == "private"):
+            bot.send_message(chat_id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
+                             reply_markup=gen_inline_markup(languages, 2))
+        else:
+            bot.send_message(chat_id, "Бот работает в личном чате")
+    except Exception as e:
+        bot.reply_to(message, 'oooops')
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -153,21 +156,24 @@ def callback_query(call):
 
 
 def process_name_step(message):
-    chat_id = message.chat.id
-    name = message.text
-    user = user_dict[chat_id]
-    user.name = name
-    res = conn.select_cities()
-    cities = []
-    lang = 2 if user.language == "kz" else 3
-    for i in range(len(res)):
-        cities.append(res[i][lang])
-    callbacks = []
-    for i in range(len(res)):
-        callbacks.append('cb_city_'+str(res[i][0]))
-    cities = dict(zip(callbacks, cities))
-    msg = bot.send_message(
-        chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=gen_inline_markup(cities, 1))
+    try:
+        chat_id = message.chat.id
+        name = message.text
+        user = user_dict[chat_id]
+        user.name = name
+        res = conn.select_cities()
+        cities = []
+        lang = 2 if user.language == "kz" else 3
+        for i in range(len(res)):
+            cities.append(res[i][lang])
+        callbacks = []
+        for i in range(len(res)):
+            callbacks.append('cb_city_'+str(res[i][0]))
+        cities = dict(zip(callbacks, cities))
+        msg = bot.send_message(
+            chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=gen_inline_markup(cities, 1))
+    except Exception as e:
+        bot.reply_to(message, 'oooops')
 
 
 def process_phone_step(message):

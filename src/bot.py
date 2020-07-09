@@ -191,7 +191,7 @@ def process_phone_step(message):
             raise PhoneExists
         options = [config.l10n[user.language]['no'],
                    config.l10n[user.language]['yes']]
-        lang = 3 if user.language == "kz" else 2
+        lang = 2 if user.language == "kz" else 3
         city_name = conn.select_city(user.city)[0][lang]
         bot.send_message(chat_id, f'{config.l10n[user.language]["name_single"]}: {user.name}\n'
                          f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
@@ -226,7 +226,7 @@ def process_confirmation_step(message):
                 tpl = (user.name, user.city, user.phone_number, user.language,
                        user.telegram_id, user.username, user.decision)
                 id = conn.add_user(tpl)
-            lang = 3 if user.language == "kz" else 2
+            lang = 2 if user.language == "kz" else 3
             bot.send_message(os.getenv("GROUP_CHAT_ID"),
                              f'ID: {id}\n'
                              f'Имя: {user.name}\n'

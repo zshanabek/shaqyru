@@ -231,8 +231,9 @@ def process_confirmation_step(message):
             bot.send_message(os.getenv("GROUP_CHAT_ID"),
                              f'ID: {id}\n'
                              f'Имя: {user.name}\n'
-                             f'Номер: {user.phone_number}\n'
+                             f'Имя пользователя: {user.username}\n'
                              f'Город: {conn.select_city(user.city)[0][lang]}\n'
+                             f'Номер: {user.phone_number}\n'
                              f'Язык: {user.language}', disable_notification=True)
             bot.send_message(
                 chat_id, config.l10n[user.language]['success_registration'], reply_markup=markup)

@@ -107,7 +107,7 @@ def callback_query(call):
         video = 'VIDEO_ID_KZ' if language == 'kz' else 'VIDEO_ID_RU'
         bot.send_video(chat_id, os.getenv(
             video), caption=config.l10n[user.language]['video'])
-        user.username = call.message.chat.username
+        user.username = '' if user.username == None else call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
         if os.getenv("ENV") != "DEVELOPMENT":
             time.sleep(7)
@@ -227,16 +227,17 @@ def process_confirmation_step(message):
                        user.telegram_id, user.username, user.decision)
                 if not conn.exist_user(user.telegram_id):
                     id = conn.add_user(tpl)
-            lang = 3
-            bot.send_message(os.getenv("GROUP_CHAT_ID"),
-                             f'ID: {id}\n'
-                             f'Имя: {user.name}\n'
-                             f'Имя пользователя: {user.username}\n'
-                             f'Город: {conn.select_city(user.city)[0][lang]}\n'
-                             f'Номер: {user.phone_number}\n'
-                             f'Язык: {user.language}', disable_notification=True)
-            bot.send_message(
-                chat_id, config.l10n[user.language]['success_registration'], reply_markup=markup)
+            if id is not None:
+                lang = 3
+                bot.send_message(os.getenv("GROUP_CHAT_ID"),
+                                 f'ID: {id}\n'
+                                 f'Имя: {user.name}\n'
+                                 f'Имя пользователя: {user.username}\n'
+                                 f'Город: {conn.select_city(user.city)[0][lang]}\n'
+                                 f'Номер: {user.phone_number}\n'
+                                 f'Язык: {user.language}', disable_notification=True)
+                bot.send_message(
+                    chat_id, config.l10n[user.language]['success_registration'], reply_markup=markup)
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.l10n[user.language]['cancel_registration']
             bot.send_message(chat_id, decision, reply_markup=markup)

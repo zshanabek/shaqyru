@@ -225,8 +225,9 @@ def process_confirmation_step(message):
             else:
                 tpl = (user.name, user.city, user.phone_number, user.language,
                        user.telegram_id, user.username, user.decision)
-                id = conn.add_user(tpl)
-            lang = 2 if user.language == "kz" else 3
+                if not conn.exist_user(user.telegram_id):
+                    id = conn.add_user(tpl)
+            lang = 3
             bot.send_message(os.getenv("GROUP_CHAT_ID"),
                              f'ID: {id}\n'
                              f'Имя: {user.name}\n'

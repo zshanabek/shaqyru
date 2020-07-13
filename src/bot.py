@@ -242,7 +242,7 @@ def process_confirmation_step(message):
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.l10n[user.language]['cancel_registration']
             bot.send_message(chat_id, decision, reply_markup=markup)
-        user.clear()
+        del user
     except Exception as e:
         bot.reply_to(message, 'oooops')
 

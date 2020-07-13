@@ -117,8 +117,8 @@ def callback_query(call):
                          ['offer'], reply_markup=gen_inline_markup(choices, 2))
     elif call.data in ("cb_no", "cb_yes"):
         if call.data == "cb_no":
-            user = user_dict[chat_id]
             try:
+                user = user_dict[chat_id]
                 bot.edit_message_text(
                     config.l10n[user.language]['deny'], chat_id, call.message.message_id)
                 bot.answer_callback_query(
@@ -242,6 +242,7 @@ def process_confirmation_step(message):
         elif confirm in ('Нет', 'Жоқ'):
             decision = config.l10n[user.language]['cancel_registration']
             bot.send_message(chat_id, decision, reply_markup=markup)
+        user.clear()
     except Exception as e:
         bot.reply_to(message, 'oooops')
 

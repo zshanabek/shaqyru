@@ -1,0 +1,2 @@
+class PhoneExists(Exception):
+    pass

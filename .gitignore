@@ -1,8 +1,5 @@
 __pycache__/
 .vscode/
-src/test.py
-video
-shaqyru.db
 .env
 Procfile
-Pipfile.lock
+.handler-saves

@@ -1,83 +1,22 @@
 # -*- coding: utf-8 -*-
 import os
-import sentry_sdk
 import time
-import telebot
-import logging
+import sentry_sdk
 import phonenumbers
 from telebot import types
-from phonenumbers import carrier
 from phonenumbers.phonenumberutil import number_type
-import config
 from postgretor import Postgretor
-from dotenv import load_dotenv
+from models import User
+from exceptions import PhoneExists
+import config
+import utils
+from settings import bot, DEV_MODE
 
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(BASEDIR, '.env'))
 user_dict = {}
 conn = Postgretor()
-bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
-
-DEV_MODE = True if os.getenv("ENV") == "DEVELOPMENT" else False
-logger = telebot.logger
-telebot.logger.setLevel(logging.DEBUG)
 
 if not DEV_MODE:
-    sentry_sdk.init(
-        "https://28251dceb1e74021a30190263a96196d@o406290.ingest.sentry.io/5273457")
-
-
-class User:
-    def __init__(self, language):
-        self.language = language
-        self.username = None
-        self.telegram_id = None
-        self.name = None
-        self.city = None
-        self.phone_number = None
-        self.decision = False
-
-
-class Error(Exception):
-    """Base class for other exceptions"""
-    pass
-
-
-class PhoneExists(Error):
-    pass
-
-
-languages = {'cb_ru': f"Русский 🇷🇺️", 'cb_kz': "Қазақша 🇰🇿️"}
-
-
-def gen_reply_markup(words, row_width, isOneTime, isContact):
-    markup = types.ReplyKeyboardMarkup(
-        one_time_keyboard=isOneTime, row_width=row_width, resize_keyboard=True)
-    buttons = []
-    for word in words:
-        buttons.append(types.KeyboardButton(
-            text=word, request_contact=isContact))
-    if row_width == 0:
-        for b in buttons:
-            markup.add(b)
-    else:
-        markup.add(*buttons)
-    return markup
-
-
-def gen_inline_markup(dict, row_width):
-    markup = types.InlineKeyboardMarkup()
-    markup.row_width = row_width
-    buttons = []
-    for key in dict:
-        buttons.append(types.InlineKeyboardButton(
-            text=dict[key], callback_data=key))
-    if row_width == 0:
-        for button in buttons:
-            markup.add(button)
-    else:
-        markup.add(*buttons)
-    return markup
+    sentry_sdk.init(os.getenv("SENTRY_URL"))
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -86,7 +25,7 @@ def send_welcome(message):
         chat_id = message.chat.id
         if (message.chat.type == "private"):
             bot.send_message(chat_id, 'Здравствуйте, это телеграм бот потребительского кооператива "Елимай-2019". Выберите язык на котором хотите продолжить переписку',
-                             reply_markup=gen_inline_markup(languages, 2))
+                             reply_markup=utils.gen_inline_markup(config.languages, 2))
         else:
             bot.send_message(chat_id, "Бот работает в личном чате")
     except Exception as e:
@@ -115,7 +54,7 @@ def callback_query(call):
         choices = {'cb_yes': config.l10n[user.language]['yes'],
                    'cb_no': config.l10n[user.language]['no'], }
         bot.send_message(chat_id, config.l10n[user.language]
-                         ['offer'], reply_markup=gen_inline_markup(choices, 2))
+                         ['offer'], reply_markup=utils.gen_inline_markup(choices, 2))
     elif call.data in ("cb_no", "cb_yes"):
         if call.data == "cb_no":
             try:
@@ -152,7 +91,7 @@ def callback_query(call):
         user.city = city
         buttons = (config.l10n[user.language]['send_contact'],)
         msg = bot.send_message(
-            chat_id, config.l10n[user.language]['number'], reply_markup=gen_reply_markup(buttons, 1, False, True))
+            chat_id, config.l10n[user.language]['number'], reply_markup=utils.gen_reply_markup(buttons, 1, False, True))
         bot.register_next_step_handler(msg, process_phone_step)
 
 
@@ -172,7 +111,7 @@ def process_name_step(message):
             callbacks.append('cb_city_'+str(res[i][0]))
         cities = dict(zip(callbacks, cities))
         msg = bot.send_message(
-            chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=gen_inline_markup(cities, 1))
+            chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=utils.gen_inline_markup(cities, 1))
     except Exception as e:
         bot.reply_to(message, 'oooops')
 
@@ -182,70 +121,64 @@ def process_phone_step(message):
         chat_id = message.chat.id
         user = user_dict[chat_id]
         if message.contact:
-            user.phone_number = f'+{message.contact.phone_number}'
+            number = message.contact.phone_number
+            user.phone_number = number if number[0] == '+' else f'+{number}'
         else:
             number = message.text
-            if not (carrier._is_mobile(number_type(phonenumbers.parse(number)))):
+            if not (phonenumbers.carrier._is_mobile(number_type(phonenumbers.parse(number)))):
                 raise Exception
             user.phone_number = number
         if conn.exist_phone(user.phone_number):
             raise PhoneExists
-        options = [config.l10n[user.language]['no'],
-                   config.l10n[user.language]['yes']]
         lang = 2 if user.language == "kz" else 3
         city_name = conn.select_city(user.city)[0][lang]
-        bot.send_message(chat_id, f'{config.l10n[user.language]["name_single"]}: {user.name}\n'
-                         f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
-                         f'{config.l10n[user.language]["city_single"]}: {city_name}')
-        msg = bot.send_message(
-            chat_id, config.l10n[user.language]['confirm'], reply_markup=gen_reply_markup(options, 2, True, False))
-        bot.register_next_step_handler(msg, process_confirmation_step)
+        markup = types.ReplyKeyboardRemove(selective=False)
+        msg = bot.send_message(chat_id, f'{config.l10n[user.language]["name_single"]}: {user.name}\n'
+                               f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
+                               f'{config.l10n[user.language]["city_single"]}: {city_name}', reply_markup=markup)
+        save_data(message)
     except PhoneExists:
         msg = bot.send_message(
-            message.chat.id, config.l10n[user.language]['number_exists'], reply_markup=gen_reply_markup([], 1, False, False))
+            message.chat.id, config.l10n[user.language]['number_exists'], reply_markup=utils.gen_reply_markup([], 1, False, False))
         bot.register_next_step_handler(msg, process_phone_step)
     except Exception:
         buttons = (config.l10n[user.language]['send_contact'],)
         msg = bot.send_message(
-            message.chat.id, config.l10n[user.language]['number_invalid'], reply_markup=gen_reply_markup(buttons, 1, False, True))
+            message.chat.id, config.l10n[user.language]['number_invalid'], reply_markup=utils.gen_reply_markup(buttons, 1, False, True))
         bot.register_next_step_handler(msg, process_phone_step)
 
 
-def process_confirmation_step(message):
+def save_data(message):
     try:
         chat_id = message.chat.id
-        confirm = message.text
         user = user_dict[chat_id]
-        markup = types.ReplyKeyboardRemove(selective=False)
-        if confirm in ('Да', 'Йә'):
-            id = None
-            if conn.exist_user(user.telegram_id) and not conn.select_user(user.telegram_id)[7]:
-                tpl = [user.name, user.city, user.phone_number,
-                       user.language, user.decision, user.telegram_id]
-                id = conn.update_user(tpl)
-            else:
-                tpl = (user.name, user.city, user.phone_number, user.language,
-                       user.telegram_id, user.username, user.decision)
-                if not conn.exist_user(user.telegram_id):
-                    id = conn.add_user(tpl)
-            if id is not None:
-                lang = 3
-                username = '' if user.username == None else f'@{user.username}'
-                bot.send_message(os.getenv("GROUP_CHAT_ID"),
-                                 f'ID: {id}\n'
-                                 f'Имя: {user.name}\n'
-                                 f'Имя пользователя: {username}\n'
-                                 f'Город: {conn.select_city(user.city)[0][lang]}\n'
-                                 f'Номер: {user.phone_number}\n'
-                                 f'Язык: {user.language}', disable_notification=True)
-                bot.send_message(
-                    chat_id, config.l10n[user.language]['success_registration'], reply_markup=markup)
-        elif confirm in ('Нет', 'Жоқ'):
-            decision = config.l10n[user.language]['cancel_registration']
-            bot.send_message(chat_id, decision, reply_markup=markup)
+        id = None
+        if conn.exist_user(user.telegram_id) and not conn.select_user(user.telegram_id)[7]:
+            tpl = [user.name, user.city, user.phone_number,
+                   user.language, user.decision, user.telegram_id]
+            id = conn.update_user(tpl)
+        else:
+            tpl = (user.name, user.city, user.phone_number, user.language,
+                   user.telegram_id, user.username, user.decision)
+            if not conn.exist_user(user.telegram_id):
+                id = conn.add_user(tpl)
+        if id is not None:
+            lang = 3
+            username = '' if user.username == None else f'@{user.username}'
+            bot.send_message(os.getenv("GROUP_CHAT_ID"),
+                             f'ID: {id}\n'
+                             f'Имя: {user.name}\n'
+                             f'Имя пользователя: {username}\n'
+                             f'Город: {conn.select_city(user.city)[0][lang]}\n'
+                             f'Номер: {user.phone_number}\n'
+                             f'Язык: {user.language}', disable_notification=True)
+            bot.send_message(
+                chat_id, config.l10n[user.language]['success_registration'])
         del user
     except Exception as e:
         bot.reply_to(message, 'oooops')
 
 
+bot.enable_save_next_step_handlers(delay=2)
+bot.load_next_step_handlers()
 bot.polling()

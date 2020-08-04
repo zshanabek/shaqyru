@@ -18,11 +18,11 @@ user_dict = {}
 conn = Postgretor()
 bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
-if os.getenv("ENV") == "DEVELOPMENT":
-    logger = telebot.logger
-    telebot.logger.setLevel(logging.DEBUG)
+DEV_MODE = True if os.getenv("ENV") == "DEVELOPMENT" else False
+logger = telebot.logger
+telebot.logger.setLevel(logging.DEBUG)
 
-if os.getenv("ENV") != "DEVELOPMENT":
+if not DEV_MODE:
     sentry_sdk.init(
         "https://28251dceb1e74021a30190263a96196d@o406290.ingest.sentry.io/5273457")
 
@@ -103,13 +103,14 @@ def callback_query(call):
         bot.answer_callback_query(
             call.id, config.l10n[user.language]['language'])
         # video = open(
-        # '/home/sam/Documents/Projects/bots/shaqyru/video/promo_ru.mp4', 'rb')
+        #     '/home/sam/Documents/Projects/elimaiga/promo_kz.mp4', 'rb')
+        # bot.send_video(chat_id, video)
         video = 'VIDEO_ID_KZ' if language == 'kz' else 'VIDEO_ID_RU'
-        bot.send_video(chat_id, os.getenv(
-            video), caption=config.l10n[user.language]['video'])
+        bot.send_video(chat_id, os.getenv(video),
+                       caption=config.l10n[user.language]['video'])
         user.username = call.message.chat.username
         user.telegram_id = str(call.message.chat.id)
-        if os.getenv("ENV") != "DEVELOPMENT":
+        if not DEV_MODE:
             time.sleep(7)
         choices = {'cb_yes': config.l10n[user.language]['yes'],
                    'cb_no': config.l10n[user.language]['no'], }
@@ -181,7 +182,7 @@ def process_phone_step(message):
         chat_id = message.chat.id
         user = user_dict[chat_id]
         if message.contact:
-            user.phone_number = message.contact.phone_number
+            user.phone_number = f'+{message.contact.phone_number}'
         else:
             number = message.text
             if not (carrier._is_mobile(number_type(phonenumbers.parse(number)))):

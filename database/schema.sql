@@ -36,6 +36,7 @@ CREATE TABLE "users" (
 	"decision" BOOLEAN,
 	"created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	"updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE(telegram_id, phone_number),
 	FOREIGN KEY("city_id") REFERENCES "cities"("id") ON DELETE
 	SET NULL
 );

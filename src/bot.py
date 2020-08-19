@@ -2,9 +2,8 @@
 import os
 import time
 import sentry_sdk
-import phonenumbers
-from phonenumbers import carrier, parse
 from telebot import types
+from phonenumbers import carrier, parse
 from phonenumbers.phonenumberutil import number_type
 from postgretor import Postgretor
 from models import User

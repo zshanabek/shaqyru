@@ -25,6 +25,7 @@ VALUES (1, 'Almaty', 'Алматы', 'Алматы'),
 	(15, 'Taldykorgan', 'Талдыкорган', 'Талдықорған'),
 	(16, 'Kokshetau', 'Кокшетау', 'Көкшетау'),
 	(17, 'Turkestan', 'Туркестан', 'Түркістан');
+        (18, 'Kaskelen', 'Каскелен', 'Қаскелен');
 CREATE TABLE "users" (
 	"id" serial PRIMARY KEY,
 	"name" VARCHAR (255),

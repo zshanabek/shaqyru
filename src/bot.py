@@ -29,7 +29,7 @@ def send_welcome(message):
                              reply_markup=utils.gen_inline_markup(config.languages, 2))
         else:
             bot.send_message(chat_id, "Бот работает в личном чате")
-    except Exception as e:
+    except Exception:
         bot.reply_to(message, 'oooops')
 
 
@@ -68,7 +68,7 @@ def callback_query(call):
                     tpl = (user.name, user.city, user.phone_number,
                            user.language, user.telegram_id, user.username, user.decision)
                     res = conn.add_user(tpl)
-            except Exception as e:
+            except Exception:
                 bot.reply_to(call.message, 'oooops')
         else:
             try:
@@ -92,7 +92,7 @@ def callback_query(call):
                     cities = dict(zip(callbacks, cities))
                     msg = bot.send_message(
                         chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=utils.gen_inline_markup(cities, 1))
-            except Exception as e:
+            except Exception:
                 bot.reply_to(call.message, 'oooops')
     else:
         city = int(call.data.split('_')[-1])
@@ -113,11 +113,10 @@ def process_name_step(message):
         lang = 2 if user.language == "kz" else 3
         city_name = conn.select_city(user.city)[0][lang]
         bot.send_message(chat_id, f'{config.l10n[user.language]["name_single"]}: {user.name}\n'
-                               f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
-                               f'{config.l10n[user.language]["city_single"]}: {city_name}')
+                         f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
+                         f'{config.l10n[user.language]["city_single"]}: {city_name}')
         save_data(message)
-
-    except Exception as e:
+    except Exception:
         bot.reply_to(message, 'oooops')
 
 
@@ -137,7 +136,8 @@ def process_phone_step(message):
         if conn.exist_phone(user.phone_number):
             raise PhoneExists
         markup = types.ReplyKeyboardRemove(selective=False)
-        msg = bot.send_message(chat_id, config.l10n[user.language]['name'], reply_markup=markup)
+        msg = bot.send_message(
+            chat_id, config.l10n[user.language]['name'], reply_markup=markup)
         bot.register_next_step_handler(msg, process_name_step)
     except PhoneExists:
         msg = bot.send_message(
@@ -177,7 +177,7 @@ def save_data(message):
             bot.send_message(
                 chat_id, config.l10n[user.language]['success_registration'])
         del user
-    except Exception as e:
+    except Exception:
         bot.reply_to(message, 'oooops')
 
 

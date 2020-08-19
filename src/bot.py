@@ -3,6 +3,7 @@ import os
 import time
 import sentry_sdk
 import phonenumbers
+from phonenumbers import carrier, parse
 from telebot import types
 from phonenumbers.phonenumberutil import number_type
 from postgretor import Postgretor
@@ -75,14 +76,22 @@ def callback_query(call):
                 user.decision = True
                 bot.answer_callback_query(
                     call.id, config.l10n[user.language]['yes'])
+                lang = 2 if user.language == "kz" else 3
                 if conn.exist_user(user.telegram_id) and conn.select_user(user.telegram_id)[7]:
                     res = conn.select_user(user.telegram_id)
                     bot.send_message(
                         chat_id, config.l10n[user.language]['already_registered'])
                 else:
+                    res = conn.select_cities()
+                    cities = []
+                    for i in range(len(res)):
+                        cities.append(res[i][lang])
+                    callbacks = []
+                    for i in range(len(res)):
+                        callbacks.append('cb_city_'+str(res[i][0]))
+                    cities = dict(zip(callbacks, cities))
                     msg = bot.send_message(
-                        chat_id, config.l10n[user.language]['name'])
-                    bot.register_next_step_handler(msg, process_name_step)
+                        chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=utils.gen_inline_markup(cities, 1))
             except Exception as e:
                 bot.reply_to(call.message, 'oooops')
     else:
@@ -101,17 +110,13 @@ def process_name_step(message):
         name = message.text
         user = user_dict[chat_id]
         user.name = name
-        res = conn.select_cities()
-        cities = []
         lang = 2 if user.language == "kz" else 3
-        for i in range(len(res)):
-            cities.append(res[i][lang])
-        callbacks = []
-        for i in range(len(res)):
-            callbacks.append('cb_city_'+str(res[i][0]))
-        cities = dict(zip(callbacks, cities))
-        msg = bot.send_message(
-            chat_id, f"{user.name}, {config.l10n[user.language]['city']}", reply_markup=utils.gen_inline_markup(cities, 1))
+        city_name = conn.select_city(user.city)[0][lang]
+        bot.send_message(chat_id, f'{config.l10n[user.language]["name_single"]}: {user.name}\n'
+                               f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
+                               f'{config.l10n[user.language]["city_single"]}: {city_name}')
+        save_data(message)
+
     except Exception as e:
         bot.reply_to(message, 'oooops')
 
@@ -122,21 +127,18 @@ def process_phone_step(message):
         user = user_dict[chat_id]
         if message.contact:
             number = message.contact.phone_number
-            user.phone_number = number if number[0] == '+' else f'+{number}'
+            # Get last 10 characters
+            user.phone_number = f'8{number[-10:]}'
         else:
             number = message.text
-            if not (phonenumbers.carrier._is_mobile(number_type(phonenumbers.parse(number)))):
+            if not (carrier._is_mobile(number_type(parse(number)))):
                 raise Exception
             user.phone_number = number
         if conn.exist_phone(user.phone_number):
             raise PhoneExists
-        lang = 2 if user.language == "kz" else 3
-        city_name = conn.select_city(user.city)[0][lang]
         markup = types.ReplyKeyboardRemove(selective=False)
-        msg = bot.send_message(chat_id, f'{config.l10n[user.language]["name_single"]}: {user.name}\n'
-                               f'{config.l10n[user.language]["number_single"]}: {user.phone_number}\n'
-                               f'{config.l10n[user.language]["city_single"]}: {city_name}', reply_markup=markup)
-        save_data(message)
+        msg = bot.send_message(chat_id, config.l10n[user.language]['name'], reply_markup=markup)
+        bot.register_next_step_handler(msg, process_name_step)
     except PhoneExists:
         msg = bot.send_message(
             message.chat.id, config.l10n[user.language]['number_exists'], reply_markup=utils.gen_reply_markup([], 1, False, False))

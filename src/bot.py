@@ -181,7 +181,7 @@ def save_data(message):
                 city = conn.select_city(user.city)[0][3]
                 now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                 user_tpl = (id, user.name, city, user.phone_number,
-                            user.language, user.username, now)
+                            user.language, user.telegram_id, user.username, now)
                 worksheet.append_row(user_tpl)
         if id is not None:
             lang = 3

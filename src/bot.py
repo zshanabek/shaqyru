@@ -22,7 +22,7 @@ if not DEV_MODE:
     sentry_sdk.init(os.getenv("SENTRY_URL"))
 
 gc = gspread.service_account(filename=os.path.join(dirname, 'elimai.json'))
-sh = gc.open_by_key('1KHjiaBrypuhyX1uVbp2_k47tA0C7sPH5RD0PCS7iI9I')
+sh = gc.open_by_key(os.getenv("SHEET_ID"))
 worksheet = sh.sheet1
 
 

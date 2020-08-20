@@ -13,6 +13,10 @@ phonenumbers = "*"
 psycopg2 = "*"
 python-dotenv = "*"
 sentry-sdk = "*"
+google-api-python-client = "*"
+google-auth-httplib2 = "*"
+google-auth-oauthlib = "*"
+gspread = "*"
 
 [requires]
 python_version = "3"

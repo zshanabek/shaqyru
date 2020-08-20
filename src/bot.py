@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import time
+import gspread
 import sentry_sdk
 from telebot import types
 from phonenumbers import carrier, parse
@@ -11,12 +12,18 @@ from exceptions import PhoneExists
 import config
 import utils
 from settings import bot, DEV_MODE
+from datetime import datetime
 
+dirname = os.path.dirname(__file__)
 user_dict = {}
 conn = Postgretor()
 
 if not DEV_MODE:
     sentry_sdk.init(os.getenv("SENTRY_URL"))
+
+gc = gspread.service_account(filename=os.path.join(dirname, 'elimai.json'))
+sh = gc.open_by_key('1KHjiaBrypuhyX1uVbp2_k47tA0C7sPH5RD0PCS7iI9I')
+worksheet = sh.sheet1
 
 
 @bot.message_handler(commands=['start', 'help'])
@@ -28,6 +35,15 @@ def send_welcome(message):
                              reply_markup=utils.gen_inline_markup(config.languages, 2))
         else:
             bot.send_message(chat_id, "Бот работает в личном чате")
+    except Exception:
+        bot.reply_to(message, 'oooops')
+
+
+@bot.message_handler(commands=['contacts'])
+def send_contacts(message):
+    try:
+        chat_id = message.chat.id
+        bot.send_message(chat_id, 'Наш сайт https://elimai2019.kz/')
     except Exception:
         bot.reply_to(message, 'oooops')
 
@@ -125,15 +141,14 @@ def process_phone_step(message):
         user = user_dict[chat_id]
         if message.contact:
             number = message.contact.phone_number
-            # Get last 10 characters
-            user.phone_number = f'8{number[-10:]}'
         else:
             number = message.text
             if not (carrier._is_mobile(number_type(parse(number)))):
                 raise Exception
-            user.phone_number = number
         if conn.exist_phone(user.phone_number):
             raise PhoneExists
+        # Get last 10 characters
+        user.phone_number = f'8{number[-10:]}'
         markup = types.ReplyKeyboardRemove(selective=False)
         msg = bot.send_message(
             chat_id, config.l10n[user.language]['name'], reply_markup=markup)
@@ -163,6 +178,11 @@ def save_data(message):
                    user.telegram_id, user.username, user.decision)
             if not conn.exist_user(user.telegram_id):
                 id = conn.add_user(tpl)
+                city = conn.select_city(user.city)[0][3]
+                now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                user_tpl = (id, user.name, city, user.phone_number,
+                            user.language, user.username, now)
+                worksheet.append_row(user_tpl)
         if id is not None:
             lang = 3
             username = '' if user.username == None else f'@{user.username}'

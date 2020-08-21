@@ -19,7 +19,7 @@ cd shaqyru
 pipenv install
 ```
 
-3. Create the environment variables file named `.env`. In it write down token, Postgresql database connection credentials.
+3. Create the environment variables file named `.env`. In it write down token, Postgresql credentials, Google Sheet ID and Sentry app ID.
 
 ```text
 ENV=DEVELOPMENT

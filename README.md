@@ -1,6 +1,6 @@
 # Shaqyru
 
-Telegram bot collects data about users: name, city, phone. Then forwards it to group chat. Data is saved in google sheets
+Telegram bot collects data about users: name, city, phone. Then forwards it to group chat. Data is saved in google sheets and postgresql
 
 shaqyru - word from Kazakh шақыру ("invite").
 
